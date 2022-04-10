@@ -5,6 +5,9 @@ HallEncoder::HallEncoder(uint8_t pin_A, uint8_t pin_B, uint8_t pin_Z) {
     pin_A_ = pin_A;
     pin_B_ = pin_B;
     pin_Z_ = pin_Z;
+    pinMode(pin_A_, INPUT_PULLUP);
+    pinMode(pin_B_, INPUT_PULLUP);
+    pinMode(pin_Z_, INPUT_PULLUP);
     // Index is the Hall state, value is the associated encoder position.
     hall_state_table_[0] = -1; // Invalid Hall state.
     hall_state_table_[1] = 0;
@@ -41,8 +44,6 @@ int HallEncoder::GetRawPosition() {
     return hall_state_table_[last_state_];
 }
 
-
-
 // Blocking calibration routine.
 // Notes the six Hall states as the encoder is turned.
 // Returns 0 if calibrated with no errores.
@@ -50,11 +51,13 @@ int HallEncoder::Calibrate() {
     Serial.println("Slowly turn the wheel forwards.");
     uint8_t state_transition_counter = 0;
     uint8_t previous_hall_state = 255;
-    while (state_transition_counter < 5) {
+    while (state_transition_counter < 6) {
         uint8_t state = ReadHallState();
         if (state != previous_hall_state) {
             hall_state_table_[state] = state_transition_counter;
+            Serial.println("Index: " + String(state)+" Position: " + String(state_transition_counter));
             state_transition_counter += 1;
+            previous_hall_state = state;
         }
         if (state < 1 || state > 6) {
             // Invalid Hall state.
@@ -77,7 +80,13 @@ uint8_t HallEncoder::ReadHallState() {
   uint8_t b = digitalRead(pin_B_);
   uint8_t z = digitalRead(pin_Z_);
   // a, b and z are the three least significant bits of the result.
-  return a << 2 | b << 1 | z;
+  uint8_t state = a << 2 | b << 1 | z;
+  if (state < 1 || state > 6) {
+            // Invalid Hall state.
+            Serial.println("Calibration failed. Result may be invalid.");
+            return -1;
+        }
+        return state;
 }
 
 int HallEncoder::Update() {
@@ -88,7 +97,7 @@ int HallEncoder::Update() {
   if (abs(state_change) == 1) {
       // Postion increased or decreased by one.
       position_ += state_change;
-      velocity_cps_ = (float)state_change / (float)(micros() - last_change_time_us_);
+      velocity_cps_ = 1000000.0 * (float)state_change / (float)(micros() - last_change_time_us_);
       last_change_time_us_ = now;
   }
   else if (state_change != 0) {
@@ -105,7 +114,6 @@ int HallEncoder::Update() {
  * All others: Error codes.
  */
 int HallEncoder::GetStateChange(uint8_t state) {
-    
     // Check for Hall state validity. 
     if (hall_state_table_[last_state_] == -1) {
         // Last hall state is invalid.
@@ -120,11 +128,11 @@ int HallEncoder::GetStateChange(uint8_t state) {
     int new_pos = hall_state_table_[state];
     // See what changed.
     if (new_pos == (last_pos + 1) % 6) {
-        // Encoder position has increased.
+        // Serial.println("Encoder position has increased.");
         return 1;
     }
-    else if (new_pos == (last_pos - 1) % 6) {
-        // Encoder position has decreased.
+    else if (((last_pos - 1) % 6) == new_pos || (last_pos == 0 && new_pos == 5)) {
+        // Serial.println("Encoder position has decreased.");
         return -1;
     }
     else if (new_pos == last_pos) {
@@ -132,7 +140,11 @@ int HallEncoder::GetStateChange(uint8_t state) {
         return 0;
     }
     else {
-        // Encoder has skipped at least one step.
+        Serial.print(last_pos);
+        Serial.print('\t');
+        Serial.print(new_pos);
+        Serial.print('\t');
+        Serial.println("Encoder has skipped at least one step.");
         return 30;
     }
 }
