@@ -52,6 +52,11 @@ void HallEncoder::WriteCalibration(uint8_t pos_1, uint8_t pos_2, uint8_t pos_3, 
     hall_state_table_[6] = pos_6;
 }
 
+// Copy calibration from an array
+void HallEncoder::CopyCalibration(uint8_t* calib_array) {
+    memcpy(hall_state_table_[1],calib_array, 6);
+}
+
 // Blocking calibration routine.
 // Notes the six Hall states as the encoder is turned.
 // Returns 0 if calibrated with no errores.
@@ -63,8 +68,9 @@ int HallEncoder::Calibrate() {
         uint8_t state = ReadHallState();
         if (state != previous_hall_state) {
             hall_state_table_[state] = state_transition_counter;
-            Serial.println("Index: " + String(state)+" Position: " + String(state_transition_counter));
+            // Serial.println("Index: " + String(state)+" Position: " + String(state_transition_counter));
             state_transition_counter += 1;
+            Serial.println("Sensed Hall state transition " + String(state_transition_counter) + "/5");
             previous_hall_state = state;
         }
         if (state < 1 || state > 6) {
@@ -74,7 +80,16 @@ int HallEncoder::Calibrate() {
         }
         // ToDo(LuSeKa): Check if this state was previously seen.
     }
-    Serial.println("Calibration finished successfully.");
+    Serial.println("Calibration finished successfully. Result:");
+    for(int i = 0; i<5; i++) {
+        Serial.print(hall_state_table_[i+1]);
+        if(i<4) {
+            Serial.print('\t');
+        }
+        else {
+            Serial.println();
+        }
+    }
     return 0;
 }
 
