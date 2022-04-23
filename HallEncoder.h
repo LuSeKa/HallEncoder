@@ -8,7 +8,7 @@ class HallEncoder{
   int Calibrate();
   void WriteCalibration(uint8_t pos_1, uint8_t pos_2, uint8_t pos_3, uint8_t pos_4, uint8_t pos_5, uint8_t pos_6);
   // Copy calibration from an array
-  void HallEncoder::CopyCalibration(uint8_t* calib_array);
+  void CopyCalibration(int *calib_array);
   int Update();
   float GetVelocity();
   long int GetPosition();
@@ -17,7 +17,7 @@ class HallEncoder{
   int GetRawPosition();
   
   private:
-  static const unsigned long kWindowSize_ = 20;
+  static const unsigned long kWindowSize_ = 30;
   static const unsigned long kSamplingIntervalUs_ = 10000;
   uint8_t pin_A_ = 0;
   uint8_t pin_B_ = 0;

@@ -53,8 +53,10 @@ void HallEncoder::WriteCalibration(uint8_t pos_1, uint8_t pos_2, uint8_t pos_3, 
 }
 
 // Copy calibration from an array
-void HallEncoder::CopyCalibration(uint8_t* calib_array) {
-    memcpy(hall_state_table_[1],calib_array, 6);
+void HallEncoder::CopyCalibration(int *calib_array) {
+    for (int i = 0; i<6; i++) {
+        hall_state_table_[i+1] = calib_array[i];
+    }
 }
 
 // Blocking calibration routine.
@@ -63,14 +65,18 @@ void HallEncoder::CopyCalibration(uint8_t* calib_array) {
 int HallEncoder::Calibrate() {
     Serial.println("Slowly turn the wheel forwards.");
     uint8_t state_transition_counter = 0;
-    uint8_t previous_hall_state = 255;
+    uint8_t state = ReadHallState();
+    hall_state_table_[state] = state_transition_counter;
+    state_transition_counter += 1;
+    uint8_t previous_hall_state = state;
+    
     while (state_transition_counter < 6) {
-        uint8_t state = ReadHallState();
+        state = ReadHallState();
         if (state != previous_hall_state) {
             hall_state_table_[state] = state_transition_counter;
             // Serial.println("Index: " + String(state)+" Position: " + String(state_transition_counter));
             state_transition_counter += 1;
-            Serial.println("Sensed Hall state transition " + String(state_transition_counter) + "/5");
+            Serial.println("Sensed Hall state transition " + String(state_transition_counter - 1) + "/5");
             previous_hall_state = state;
         }
         if (state < 1 || state > 6) {
@@ -81,9 +87,9 @@ int HallEncoder::Calibrate() {
         // ToDo(LuSeKa): Check if this state was previously seen.
     }
     Serial.println("Calibration finished successfully. Result:");
-    for(int i = 0; i<5; i++) {
+    for(int i = 0; i<6; i++) {
         Serial.print(hall_state_table_[i+1]);
-        if(i<4) {
+        if(i<5) {
             Serial.print('\t');
         }
         else {
