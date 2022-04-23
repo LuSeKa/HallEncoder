@@ -1,6 +1,6 @@
-#include <Command_processor.h>
+#include <Command_processor.h> // https://github.com/LuSeKa/command_processor
 #include <HallEncoder.h>
-#include <Metro.h>
+#include <Metro.h> // https://github.com/LuSeKa/Metro
 
 Command_processor cmd;
 HallEncoder hall = HallEncoder(8, 9, 10);
