@@ -40,6 +40,10 @@ int HallEncoder::GetState() {
 
 void HallEncoder::Reset() {
     position_ = 0;
+    velocity_cps_ = 0;
+    for (int i = 0; i < kWindowSize_; i ++) {
+        position_window_[i] = 0;
+    }
 }
 
 // Set the calibration table from known calibration values.
